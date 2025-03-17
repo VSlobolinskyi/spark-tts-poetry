@@ -241,7 +241,7 @@ def parse_arguments():
     parser.add_argument(
         "--server_name",
         type=str,
-        default="0.0.0.0",
+        default="localhost",
         help="Server host/IP for Gradio app."
     )
     parser.add_argument(
@@ -249,6 +249,11 @@ def parse_arguments():
         type=int,
         default=7860,
         help="Server port for Gradio app."
+    )
+    parser.add_argument(
+        "--share",
+        action="store_true",
+        help="If set, create a shareable public link."
     )
     return parser.parse_args()
 
