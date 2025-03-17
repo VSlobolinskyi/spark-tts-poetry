@@ -12,7 +12,7 @@ repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 include = "scripts_poetry"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.11,<3.12"
 einops = "0.8.1"
 einx = "0.3.0"
 numpy = "2.2.3"
