@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "spark-tts-poetry"
+version = "0.1.0"
+description = "A text-to-speech project by SparkAudio."
+authors = ["vitalii.slobolinskyi"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/VSlobolinskyi/spark-tts-poetry"
+repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
+
+[[tool.poetry.packages]]
+include = "scripts_poetry"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+einops = "0.8.1"
+einx = "0.3.0"
+numpy = "2.2.3"
+omegaconf = "2.3.0"
+packaging = "24.2"
+safetensors = "0.5.2"
+soundfile = "0.12.1"
+soxr = "0.5.0.post1"
+torch = "2.5.1"
+torchaudio = "2.5.1"
+tqdm = "4.66.5"
+transformers = "4.46.2"
+gradio = "5.18.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+download-model = "scripts_poetry.download_model:main"
