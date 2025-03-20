@@ -153,7 +153,7 @@ def build_spark_ui():
                     )
 
                 audio_output = gr.Audio(
-                    label="Generated Audio", autoplay=True, streaming=True
+                    label="Generated Audio", streaming=True
                 )
 
                 generate_buttom_clone = gr.Button("Generate")
@@ -196,7 +196,7 @@ def build_spark_ui():
                         create_button = gr.Button("Create Voice")
 
                 audio_output = gr.Audio(
-                    label="Generated Audio", autoplay=True, streaming=True
+                    label="Generated Audio", streaming=True
                 )
                 create_button.click(
                     voice_creation,
