@@ -42,7 +42,7 @@ def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0, use
                 logging.info("Triton server not running, starting it...")
                 try:
                     # Start with modified run.sh (stages 2-3)
-                    subprocess.run(["bash", "triton_run.sh", "0", "1",  "2", "3"], check=True)
+                    subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "0", "1",  "2", "3"], check=True)
                     logging.info("Triton server started successfully")
                 except subprocess.CalledProcessError as e:
                     logging.error(f"Failed to start Triton server: {e}")
