@@ -20,8 +20,8 @@ dependencies = [
     "tqdm==4.66.5",
     "transformers>=4.51.1,<5.0",
     "gradio==5.18.0",
-    "tensorrt @ https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b",
-    "tensorrt-llm @ https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4"
+    "tensorrt",
+    "tensorrt-llm"
 ]
 
 [project.urls]
@@ -43,6 +43,5 @@ build-backend = "hatchling.build"
 dev-dependencies = ["pytest>=7.0"]
 
 [tool.uv.sources]
-# Optional: Explicit source configuration for NVIDIA packages
-tensorrt = { url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b" }
-tensorrt-llm = { url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4" }
+tensorrt = { url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz" }
+tensorrt-llm = { url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl" }
