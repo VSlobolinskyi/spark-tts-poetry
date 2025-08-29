@@ -29,7 +29,7 @@ gradio = "5.18.0"
 
 nvidia-pyindex = "*"
 tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b"}
-tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0rc0-cp312-cp312-linux_x86_64.whl#sha256=a5550c31c115211786eee2b6f556a0b3a480599506c3729a281f305755026204"}
+tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
