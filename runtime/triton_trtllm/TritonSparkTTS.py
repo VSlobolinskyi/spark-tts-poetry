@@ -35,8 +35,7 @@ class TritonSparkTTS:
         # Run client_grpc.py as a subprocess
         cmd = [
             "python", "runtime/triton_trtllm/client_grpc.py",
-            "--server-addr", self.server_url.split(":")[0],
-            "--server-port", self.server_url.split(":")[1] if ":" in self.server_url else "8001",
+            "--server-addr", "localhost",
             "--reference-audio", str(prompt_speech_path),
             "--reference-text", prompt_text if prompt_text else "",
             "--target-text", text,
