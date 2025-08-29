@@ -116,10 +116,10 @@ def run_tts(
     return save_path
 
 
-def build_ui(model_dir, device=0):
+def build_ui(model_dir, device=0, use_triton=False):
 
     # Initialize model
-    model = initialize_model(model_dir, device=device)
+    model = initialize_model(model_dir, device=device, use_triton=use_triton)
 
     # Define callback function for voice cloning
     def voice_clone(text, prompt_text, prompt_wav_upload, prompt_wav_record):
@@ -280,6 +280,11 @@ def parse_arguments():
         action="store_true",
         help="If set, create a shareable public link."
     )
+    parser.add_argument(
+        "--use-triton",
+        action="store_true",
+        help="Use Triton Inference Server for model inference"
+    )
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -289,7 +294,8 @@ if __name__ == "__main__":
     # Build the Gradio demo by specifying the model directory and GPU device
     demo = build_ui(
         model_dir=args.model_dir,
-        device=args.device
+        device=args.device,
+        use_triton=args.use_triton
     )
 
     # Launch Gradio with the specified server name and port
