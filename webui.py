@@ -26,27 +26,43 @@ from cli.SparkTTS import SparkTTS
 from sparktts.utils.token_parser import LEVELS_MAP_UI
 
 
-def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0):
+def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0, use_triton=False):
     """Load the model once at the beginning."""
     logging.info(f"Loading model from: {model_dir}")
 
-    # Determine appropriate device based on platform and availability
+    if use_triton:
+        try:
+            from runtime.triton_trtllm.triton_setup import setup_triton_server
+            from runtime.triton_trtllm.triton_client import TritonSparkTTS
+            
+            # Set up and start Triton server
+            logging.info("Setting up Triton server...")
+            process, server_url = setup_triton_server(model_dir)
+            
+            # Initialize Triton client
+            logging.info(f"Initializing Triton client at {server_url}")
+            model = TritonSparkTTS(server_url=server_url)
+            
+            return model
+        except Exception as e:
+            logging.error(f"Failed to initialize Triton: {e}")
+            logging.info("Falling back to direct model loading")
+            # Fall back to direct loading if Triton fails
+            use_triton = False
+
+    # Original implementation for direct loading
     if platform.system() == "Darwin":
-        # macOS with MPS support (Apple Silicon)
         device = torch.device(f"mps:{device}")
         logging.info(f"Using MPS device: {device}")
     elif torch.cuda.is_available():
-        # System with CUDA support
         device = torch.device(f"cuda:{device}")
         logging.info(f"Using CUDA device: {device}")
     else:
-        # Fall back to CPU
         device = torch.device("cpu")
         logging.info("GPU acceleration not available, using CPU")
-
+        
     model = SparkTTS(model_dir, device)
     return model
-
 
 def run_tts(
     text,
@@ -91,10 +107,10 @@ def run_tts(
     return save_path
 
 
-def build_ui(model_dir, device=0):
+def build_ui(model_dir, device=0, use_triton=False):
 
     # Initialize model
-    model = initialize_model(model_dir, device=device)
+    model = initialize_model(model_dir, device, use_triton)
 
     # Define callback function for voice cloning
     def voice_clone(text, prompt_text, prompt_wav_upload, prompt_wav_record):
@@ -223,7 +239,7 @@ def build_ui(model_dir, device=0):
 
 def parse_arguments():
     """
-    Parse command-line arguments such as model directory and device ID.
+    Parse command-line arguments.
     """
     parser = argparse.ArgumentParser(description="Spark TTS Gradio server.")
     parser.add_argument(
@@ -255,6 +271,12 @@ def parse_arguments():
         action="store_true",
         help="If set, create a shareable public link."
     )
+    # Add Triton option
+    parser.add_argument(
+        "--use-triton",
+        action="store_true",
+        help="Use Triton Inference Server for model inference"
+    )
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -264,7 +286,8 @@ if __name__ == "__main__":
     # Build the Gradio demo by specifying the model directory and GPU device
     demo = build_ui(
         model_dir=args.model_dir,
-        device=args.device
+        device=args.device,
+        use_triton=args.use_triton
     )
 
     # Launch Gradio with the specified server name and port
