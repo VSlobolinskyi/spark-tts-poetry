@@ -27,11 +27,7 @@ tqdm = "4.66.5"
 transformers = "4.46.2"
 gradio = "5.18.0"
 # ---------------------------------------------------------------------------
-tritonclient = {extras = ["all"], version = "*"}  # Using extras to get all components
-nvidia-pyindex = "*"
-nvidia-triton-server-client = "*"
-tensorrt-llm = "*"
-tensorrt = "*"
+tritonclient = { extras = ["all"], version = "*" }
 requests = "*"
 aiohttp = "*"
 
