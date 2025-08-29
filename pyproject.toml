@@ -26,6 +26,11 @@ torchaudio = "2.5.1"
 tqdm = "4.66.5"
 transformers = "4.46.2"
 gradio = "5.18.0"
+# ---------------------------------------------------------------------------
+tritonclient = "*"
+nvidia-triton-server-client = "*"
+tensorrt-llm = "*"
+tensorrt = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
