@@ -4,7 +4,7 @@ import subprocess
 import shutil
 from pathlib import Path
 
-def setup_triton_server(pretrained_model_dir="pretrained_models/Spark-TTS-0.5B"):
+def setup_triton_server(model_dir="pretrained_models/Spark-TTS-0.5B"):
     """Set up Triton server model repository and start the server."""
     # Define paths
     src_model_repo = Path("runtime/triton_trtllm/model_repo")
@@ -16,6 +16,7 @@ def setup_triton_server(pretrained_model_dir="pretrained_models/Spark-TTS-0.5B")
     # Copy model repository structure from template
     if src_model_repo.exists():
         print(f"Copying model repository from {src_model_repo} to {dest_model_repo}")
+        
         # Copy each component
         for component in ["audio_tokenizer", "spark_tts", "vocoder", "tensorrt_llm"]:
             src_component = src_model_repo / component
@@ -38,8 +39,8 @@ def setup_triton_server(pretrained_model_dir="pretrained_models/Spark-TTS-0.5B")
                     config_content = f.read()
                 
                 # Replace template variables
-                config_content = config_content.replace("${model_dir}", str(Path(pretrained_model_dir).absolute()))
-                config_content = config_content.replace("${llm_tokenizer_dir}", str(Path(pretrained_model_dir) / "LLM"))
+                config_content = config_content.replace("${model_dir}", str(Path(model_dir).absolute()))
+                config_content = config_content.replace("${llm_tokenizer_dir}", str(Path(model_dir) / "LLM"))
                 config_content = config_content.replace("${triton_max_batch_size}", "16")
                 config_content = config_content.replace("${decoupled_mode}", "False")  # Default to non-streaming
                 config_content = config_content.replace("${max_queue_delay_microseconds}", "0")
@@ -54,6 +55,13 @@ def setup_triton_server(pretrained_model_dir="pretrained_models/Spark-TTS-0.5B")
                     f.write(config_content)
     else:
         raise FileNotFoundError(f"Model repository template not found at {src_model_repo}")
+    
+    # Install Triton if not already installed
+    try:
+        subprocess.run(["tritonserver", "--help"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("Triton server not found, installing...")
+        subprocess.run("pip install tritonclient[all] nvidia-pyindex", shell=True)
     
     # Start Triton server
     print("Starting Triton server...")

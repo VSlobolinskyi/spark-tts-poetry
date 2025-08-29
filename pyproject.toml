@@ -27,10 +27,13 @@ tqdm = "4.66.5"
 transformers = "4.46.2"
 gradio = "5.18.0"
 # ---------------------------------------------------------------------------
-tritonclient = "*"
+tritonclient = {extras = ["all"], version = "*"}  # Using extras to get all components
+nvidia-pyindex = "*"
 nvidia-triton-server-client = "*"
 tensorrt-llm = "*"
 tensorrt = "*"
+requests = "*"
+aiohttp = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
