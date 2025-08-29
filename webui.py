@@ -26,24 +26,49 @@ from cli.SparkTTS import SparkTTS
 from sparktts.utils.token_parser import LEVELS_MAP_UI
 
 
-def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0):
-    """Load the model once at the beginning."""
+def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0, use_triton=False):
+    """Load the model using Triton or directly."""
     logging.info(f"Loading model from: {model_dir}")
-
-    # Determine appropriate device based on platform and availability
+    
+    if use_triton:
+        try:
+            from runtime.triton_trtllm.TritonSparkTTS import TritonSparkTTS
+            
+            # Check if Triton server is running
+            import subprocess
+            result = subprocess.run(["curl", "-s", "localhost:8000/v2/health/ready"], capture_output=True)
+            if result.returncode != 0:
+                # Server not running, try to start it
+                logging.info("Triton server not running, starting it...")
+                try:
+                    # Run stages 2-3 of run.sh to create model repository and start server
+                    # Skip stages 0-1 if you've already converted the model
+                    subprocess.run(["bash", "runtime/triton_trtllm/run.sh", "0", "1", "2", "3"], check=True)
+                    logging.info("Triton server started successfully")
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"Failed to start Triton server: {e}")
+                    raise RuntimeError("Failed to start Triton server")
+            
+            # Initialize Triton client
+            logging.info("Initializing Triton gRPC client")
+            model = TritonSparkTTS(server_url="localhost:8001")
+            return model
+        except Exception as e:
+            logging.error(f"Failed to initialize Triton: {e}")
+            logging.info("Falling back to direct model loading")
+            use_triton = False
+    
+    # Original implementation for direct loading
     if platform.system() == "Darwin":
-        # macOS with MPS support (Apple Silicon)
         device = torch.device(f"mps:{device}")
         logging.info(f"Using MPS device: {device}")
     elif torch.cuda.is_available():
-        # System with CUDA support
         device = torch.device(f"cuda:{device}")
         logging.info(f"Using CUDA device: {device}")
     else:
-        # Fall back to CPU
         device = torch.device("cpu")
         logging.info("GPU acceleration not available, using CPU")
-
+        
     model = SparkTTS(model_dir, device)
     return model
 
