@@ -41,9 +41,13 @@ def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0, use
                 # Server not running, try to start it
                 logging.info("Triton server not running, starting it...")
                 try:
-                    # Start with modified run.sh (stages 2-3)
-                    subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "0", "1",  "2", "3"], check=True)
-                    logging.info("Triton server started successfully")
+                    # Start with modified run.sh
+                    if os.path.isdir("tllm_checkpoint_bfloat16"):
+                        subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "2", "3"], check=True)
+                        logging.info("Triton server started successfully")
+                    else:
+                        subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "0", "1", "2", "3"], check=True)
+                        logging.info("Triton server started successfully")
                 except subprocess.CalledProcessError as e:
                     logging.error(f"Failed to start Triton server: {e}")
                     raise RuntimeError("Failed to start Triton server")
