@@ -28,7 +28,7 @@ transformers = "4.55.0"
 gradio = "5.18.0"
 
 nvidia-pyindex = "*"
-tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.12.0.36.tar.gz#sha256=b246a830c26713e097b73151917e101cfb81aa0e7274c3c3b4c1f9f8b886be2e"}
+tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b"}
 tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-1.1.0rc1-cp312-cp312-linux_x86_64.whl#sha256=ddfb965116c85e132ded95018c9e35089869003afd35bacb7d884a528e3264d8"}
 
 [tool.poetry.group.dev.dependencies]
