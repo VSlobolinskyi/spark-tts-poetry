@@ -1,44 +1,41 @@
-[project]
+[tool.poetry]
 name = "spark-tts-poetry"
 version = "0.1.0"
 description = "A text-to-speech project by SparkAudio."
-authors = [{name = "vitalii.slobolinskyi"}]
-license = {text = "MIT"}
+authors = ["vitalii.slobolinskyi"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.12,<4"
-dependencies = [
-    "einops==0.8.1",
-    "einx==0.3.0",
-    "numpy==2.2.3",
-    "omegaconf==2.3.0",
-    "packaging==24.2",
-    "safetensors==0.5.2",
-    "soundfile==0.12.1",
-    "soxr==0.5.0.post1",
-    "torch>=2.7.1,<3.0",
-    "torchaudio>=2.7.1,<3.0",
-    "tqdm==4.66.5",
-    "transformers>=4.51.1,<5.0",
-    "gradio==5.18.0",
-]
+homepage = "https://github.com/VSlobolinskyi/spark-tts-poetry"
+repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 
-[project.optional-dependencies]
-nvidia = [
-    "tensorrt @ https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b",
-    "tensorrt-llm @ https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4"
-]
-dev = ["pytest>=7.0"]
+[[tool.poetry.packages]]
+include = "scripts_poetry"
 
-[project.scripts]
-download-model = "scripts_poetry.download_model:main"
+[tool.poetry.dependencies]
+python = ">=3.12,<4"
+einops = "0.8.1"
+einx = "0.3.0"
+numpy = "2.2.3"
+omegaconf = "2.3.0"
+packaging = "24.2"
+safetensors = "0.5.2"
+soundfile = "0.12.1"
+soxr = "0.5.0.post1"
+torch = "^2.7.1"
+torchaudio = "^2.7.1"
+tqdm = "4.66.5"
+transformers = "^4.51.1"
+gradio = "5.18.0"
 
-[project.urls]
-Homepage = "https://github.com/VSlobolinskyi/spark-tts-poetry"
-Repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
+# tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b"}
+# tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4"}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.uv]
-dev-dependencies = ["pytest>=7.0"]
+[tool.poetry.scripts]
+download-model = "scripts_poetry.download_model:main"
