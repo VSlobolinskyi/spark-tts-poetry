@@ -12,7 +12,7 @@ repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 include = "scripts_poetry"
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
+python = ">=3.12"
 einops = "0.8.1"
 einx = "0.3.0"
 numpy = "2.2.3"
@@ -28,8 +28,8 @@ transformers = "4.46.2"
 gradio = "5.18.0"
 
 nvidia-pyindex = "*"
-tensorrt-llm = "*"
-tensorrt = "*"
+tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.13.2.6.tar.gz#sha256=9a2ab4e5661e2ba8294a79a07efe09e2ce981a5469213fe309e0bdad79a22511"}
+tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-1.1.0rc1-cp312-cp312-linux_x86_64.whl#sha256=ddfb965116c85e132ded95018c9e35089869003afd35bacb7d884a528e3264d8"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
