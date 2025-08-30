@@ -10,6 +10,52 @@ PROJECT_ROOT=$(pwd)
 SCRIPTS_DIR=$PROJECT_ROOT/runtime/triton_trtllm/scripts
 MODEL_REPO_SRC=$PROJECT_ROOT/runtime/triton_trtllm/model_repo
 
+# Add the tensorrt_llm plugins libraries to LD_LIBRARY_PATH
+find_additional_libs() {
+    # Look for additional TensorRT-LLM libraries that might be needed
+    if [ -d "$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm" ]; then
+        # Find all the .so files in the tensorrt_llm directory
+        TENSORRT_LIBS=$(find "$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm" -name "*.so")
+        echo "Found TensorRT-LLM libraries:"
+        echo "$TENSORRT_LIBS"
+        
+        # Add the parent directories of these libraries to LD_LIBRARY_PATH
+        for lib in $TENSORRT_LIBS; do
+            lib_dir=$(dirname "$lib")
+            export LD_LIBRARY_PATH="$lib_dir:$LD_LIBRARY_PATH"
+            echo "Added $lib_dir to LD_LIBRARY_PATH"
+        done
+    fi
+}
+
+# Set up environment variables at the beginning
+if command -v poetry &> /dev/null; then
+    POETRY_ENV=$(poetry env info -p)
+    echo "Poetry environment: $POETRY_ENV"
+    
+    # Set environment variables
+    export PATH="$POETRY_ENV/bin:$PATH"
+    export PYTHONPATH="$POETRY_ENV/lib/python3.10/site-packages:$PROJECT_ROOT:$PYTHONPATH"
+    export LD_LIBRARY_PATH="$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm/libs:$POETRY_ENV/lib:/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH"
+    
+    # Find additional TensorRT-LLM libraries
+    find_additional_libs
+else
+    # If no Poetry, just set standard paths
+    export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
+    export LD_LIBRARY_PATH="/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH"
+fi
+
+# Set location of Triton backends explicitly
+export TRITON_BACKEND_DIRECTORY=/content/tritonserver/backends
+
+# Print environment variables for debugging
+echo "Environment variables:"
+echo "PATH=$PATH"
+echo "PYTHONPATH=$PYTHONPATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+echo "TRITON_BACKEND_DIRECTORY=$TRITON_BACKEND_DIRECTORY"
+
 # Model and output directories
 huggingface_model_local_dir=$PROJECT_ROOT/pretrained_models/Spark-TTS-0.5B
 trt_dtype=bfloat16
@@ -109,29 +155,31 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
     else
         echo "Docker not found, using extracted Triton server"
         
-        # Find Poetry environment location if it exists
-        if command -v poetry &> /dev/null; then
-            POETRY_ENV=$(poetry env info -p)
-            echo "Poetry environment: $POETRY_ENV"
-            
-            # Set Python environment for Triton
-            export PATH="$POETRY_ENV/bin:$PATH"
-            export PYTHONPATH="$POETRY_ENV/lib/python3.10/site-packages:$PROJECT_ROOT:$PYTHONPATH"
-            export LD_LIBRARY_PATH="$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm/libs:$POETRY_ENV/lib:/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH"
+        # Environment variables already set at the beginning of the script
+        
+        # Print current library paths
+        echo "Current library paths before starting Triton:"
+        ldconfig -p | grep tensorrt_llm || echo "No tensorrt_llm libraries found in system cache"
+        
+        # Try to manually copy the libraries to a location Triton can find
+        echo "Copying TensorRT-LLM libraries to Triton lib directory"
+        if [ -d "$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm/libs" ]; then
+            mkdir -p /content/tritonserver/lib/tensorrt_llm
+            cp -v $POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm/libs/* /content/tritonserver/lib/tensorrt_llm/
+            export LD_LIBRARY_PATH="/content/tritonserver/lib/tensorrt_llm:$LD_LIBRARY_PATH"
         fi
         
-        # Set location of Triton backends explicitly
-        export TRITON_BACKEND_DIRECTORY=/content/tritonserver/backends
-        
-        # Print environment variables for debugging
-        echo "Environment variables:"
-        echo "PATH=$PATH"
-        echo "PYTHONPATH=$PYTHONPATH"
-        echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-        echo "TRITON_BACKEND_DIRECTORY=$TRITON_BACKEND_DIRECTORY"
+        # Update library cache
+        ldconfig || echo "ldconfig failed, may need sudo privileges"
         
         # Ensure executable permission
         chmod +x /content/tritonserver/bin/tritonserver
+        
+        # Print updated environment before starting
+        echo "Final environment before starting Triton:"
+        echo "PATH=$PATH"
+        echo "PYTHONPATH=$PYTHONPATH"
+        echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
         
         # Use the extracted Triton server binary with enhanced configuration
         /content/tritonserver/bin/tritonserver \
@@ -151,6 +199,14 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
         else
             echo "Warning: Triton server may not have started properly"
             echo "Check if there are any error messages in the output above"
+            
+            # Print any running Triton processes
+            echo "Running Triton processes:"
+            ps aux | grep tritonserver
+            
+            # Check for missing libraries
+            echo "Check for missing libraries:"
+            ldd /content/tritonserver/backends/tensorrtllm/libtriton_tensorrtllm.so || echo "Could not check dependencies"
         fi
     fi
 fi
