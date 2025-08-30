@@ -81,42 +81,55 @@
     fi
 
     if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
-    echo "Starting Triton server"
-    # Check if Docker is available
-    if command -v docker &> /dev/null; then
-        echo "Using Docker for Triton server"
-        # Check if container already exists
-        if docker ps -a | grep -q tritonserver; then
-            echo "Removing existing Triton container"
-            docker rm -f tritonserver
-        fi
-        
-        # Start with Docker
-        docker run -d --name tritonserver --gpus all -p 8000:8000 -p 8001:8001 -p 8002:8002 \
-            --restart unless-stopped \
-            -v $model_repo:/models \
-            nvcr.io/nvidia/tritonserver:25.02-trtllm-python-py3 tritonserver --model-repository=/models
-        
-        # Wait for server to start
-        echo "Waiting for server to initialize..."
-        sleep 10
-    else
-        echo "Docker not found, using extracted Triton server"
-        # Ensure executable permission
-        chmod +x /content/tritonserver/bin/tritonserver
-        # Use the extracted Triton server binary
-        /content/tritonserver/bin/tritonserver --model-repository=${model_repo} &
-        
-        # Wait for server to start
-        echo "Waiting for server to initialize..."
-        sleep 20
-        
-        # Check if server is running
-        curl -s localhost:8000/v2/health/ready
-        if [ $? -eq 0 ]; then
-            echo "Triton server started successfully"
+        echo "Starting Triton server"
+        # Check if Docker is available
+        if command -v docker &> /dev/null; then
+            echo "Using Docker for Triton server"
+            # Check if container already exists
+            if docker ps -a | grep -q tritonserver; then
+                echo "Removing existing Triton container"
+                docker rm -f tritonserver
+            fi
+            
+            # Start with Docker
+            docker run -d --name tritonserver --gpus all -p 8000:8000 -p 8001:8001 -p 8002:8002 \
+                --restart unless-stopped \
+                -v $model_repo:/models \
+                nvcr.io/nvidia/tritonserver:25.02-trtllm-python-py3 tritonserver --model-repository=/models
+            nvcr.io/nvidia/tritonserver:24.12-trtllm-python-py3
+            # Wait for server to start
+            echo "Waiting for server to initialize..."
+            sleep 10
         else
-            echo "Warning: Triton server may not have started properly"
+            echo "Docker not found, using extracted Triton server"
+            # Ensure executable permission
+            chmod +x /content/tritonserver/bin/tritonserver
+            
+            # Install libb64 and create symbolic link
+            apt-get update && apt-get install -y libb64-dev
+            ln -s /usr/lib/x86_64-linux-gnu/libb64.so /usr/lib/x86_64-linux-gnu/libb64.so.0d
+            
+            # Create stub for libdcgm
+            touch /tmp/libdcgm.so.3
+            cp /tmp/libdcgm.so.3 /usr/lib/x86_64-linux-gnu/
+            
+            # Set the library path to include Triton's libs
+            export LD_LIBRARY_PATH=/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH
+            
+            # Use the extracted Triton server binary
+            /content/tritonserver/bin/tritonserver --model-repository=${model_repo} &
+            
+            # Wait for server to start
+            echo "Waiting for server to initialize..."
+            sleep 20
+            
+            # Check if server is running
+            curl -s localhost:8000/v2/health/ready
+            if [ $? -eq 0 ]; then
+                echo "Triton server started successfully"
+            else
+                echo "Warning: Triton server may not have started properly"
+            fi
         fi
     fi
 fi
