@@ -132,7 +132,6 @@
             fi
         fi
     fi
-fi
 
     if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
         echo "Running benchmark client"
