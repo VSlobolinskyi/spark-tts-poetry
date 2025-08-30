@@ -9,10 +9,10 @@ homepage = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 
 [[tool.poetry.packages]]
-include = "scripts_poetry"
+include = "scripts"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.13"
+python = ">=3.10,<3.11"
 einops = "0.8.1"
 einx = "0.3.0"
 numpy = "*"
@@ -26,11 +26,9 @@ torchaudio = "^2.7.1"
 tqdm = "4.66.5"
 transformers = "^4.51.1"
 gradio = "5.18.0"
-
 tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b"}
-tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp312-cp312-linux_x86_64.whl#sha256=9ce67d0130b1bf51161735ac1eaa19733da186d919ce5c69d19c0d0e2ed243e4"}
-
-cuda-python = {version=">=12.0,<13", markers="python_version >= '3.12' and python_version < '3.13'"}
+tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.21.0-cp310-cp310-linux_x86_64.whl#sha256=f780c381de1c916b8e4ecc6ef396714363925cc8c99bc23590b8882aa80e62f4"}
+cuda-python = {version=">=12.0,<13", markers="python_version >= '3.10' and python_version < '3.11'"}
 tritonclient = {version=">=2.55,<2.61", extras=["grpc","http"]}
 
 [tool.poetry.group.dev.dependencies]
