@@ -81,43 +81,45 @@
     fi
 
     if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
-        echo "Starting Triton server"
-        # Check if Docker is available
-        if command -v docker &> /dev/null; then
-            echo "Using Docker for Triton server"
-            # Check if container already exists
-            if docker ps -a | grep -q tritonserver; then
-                echo "Removing existing Triton container"
-                docker rm -f tritonserver
-            fi
-            
-            # Start with Docker
-            docker run -d --name tritonserver --gpus all -p 8000:8000 -p 8001:8001 -p 8002:8002 \
-                --restart unless-stopped \
-                -v $model_repo:/models \
-                nvcr.io/nvidia/tritonserver:25.02-trtllm-python-py3 tritonserver --model-repository=/models
-            
-            # Wait for server to start
-            echo "Waiting for server to initialize..."
-            sleep 10
+    echo "Starting Triton server"
+    # Check if Docker is available
+    if command -v docker &> /dev/null; then
+        echo "Using Docker for Triton server"
+        # Check if container already exists
+        if docker ps -a | grep -q tritonserver; then
+            echo "Removing existing Triton container"
+            docker rm -f tritonserver
+        fi
+        
+        # Start with Docker
+        docker run -d --name tritonserver --gpus all -p 8000:8000 -p 8001:8001 -p 8002:8002 \
+            --restart unless-stopped \
+            -v $model_repo:/models \
+            nvcr.io/nvidia/tritonserver:25.02-trtllm-python-py3 tritonserver --model-repository=/models
+        
+        # Wait for server to start
+        echo "Waiting for server to initialize..."
+        sleep 10
+    else
+        echo "Docker not found, using extracted Triton server"
+        # Ensure executable permission
+        chmod +x /content/tritonserver/bin/tritonserver
+        # Use the extracted Triton server binary
+        /content/tritonserver/bin/tritonserver --model-repository=${model_repo} &
+        
+        # Wait for server to start
+        echo "Waiting for server to initialize..."
+        sleep 20
+        
+        # Check if server is running
+        curl -s localhost:8000/v2/health/ready
+        if [ $? -eq 0 ]; then
+            echo "Triton server started successfully"
         else
-            echo "Docker not found, using extracted Triton server"
-            # Use the extracted Triton server binary
-            /content/tritonserver/bin/tritonserver --model-repository=${model_repo} &
-            
-            # Wait for server to start
-            echo "Waiting for server to initialize..."
-            sleep 20
-            
-            # Check if server is running
-            curl -s localhost:8000/v2/health/ready
-            if [ $? -eq 0 ]; then
-                echo "Triton server started successfully"
-            else
-                echo "Warning: Triton server may not have started properly"
-            fi
+            echo "Warning: Triton server may not have started properly"
         fi
     fi
+fi
 
     if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
         echo "Running benchmark client"
