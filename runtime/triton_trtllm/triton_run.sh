@@ -105,14 +105,6 @@
             # Ensure executable permission
             chmod +x /content/tritonserver/bin/tritonserver
             
-            # Install libb64 and create symbolic link
-            apt-get update && apt-get install -y libb64-dev
-            ln -s /usr/lib/x86_64-linux-gnu/libb64.so /usr/lib/x86_64-linux-gnu/libb64.so.0d
-            
-            # Create stub for libdcgm
-            touch /tmp/libdcgm.so.3
-            cp /tmp/libdcgm.so.3 /usr/lib/x86_64-linux-gnu/
-            
             # Set the library path to include Triton's libs
             export LD_LIBRARY_PATH=/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH
             
