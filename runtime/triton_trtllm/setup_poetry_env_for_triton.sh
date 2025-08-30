@@ -1,6 +1,6 @@
 #!/bin/bash
 # Helper script to set up Poetry environment for Triton
-# This script comprehensively maps the Poetry environment to make it available to Triton
+# This script maps the Poetry environment to make it available to Triton
 
 setup_poetry_env_for_triton() {
     echo "Setting up Poetry environment for Triton..."
@@ -28,8 +28,6 @@ setup_poetry_env_for_triton() {
         PYTHON_VERSION="3.10"
     fi
     echo "Poetry uses Python $PYTHON_VERSION"
-    
-    # DO NOT set PYTHONHOME as it causes initialization errors with Triton
     
     # Set PATH to include Poetry's bin directory
     export PATH="$POETRY_ENV/bin:$PATH"
@@ -93,39 +91,10 @@ setup_poetry_env_for_triton() {
         echo "Warning: TensorRT-LLM libs directory not found at $POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_llm/libs"
     fi
     
-    # Handle TensorRT-LLM Python module and extract additional symbols
-    if [ -d "$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_llm" ]; then
-        echo "Finding all TensorRT-LLM shared objects for symbol resolution..."
-        TRTLLM_SO_FILES=$(find "$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_llm" -name "*.so" -type f 2>/dev/null)
-        
-        # Create a directory for additional TensorRT-LLM libraries
-        mkdir -p /content/tritonserver/lib/tensorrt_llm_extra
-        
-        # Copy all TensorRT-LLM .so files to ensure all symbols are available
-        for so_file in $TRTLLM_SO_FILES; do
-            base_name=$(basename "$so_file")
-            if [ ! -f "/content/tritonserver/lib/tensorrt_llm/$base_name" ]; then
-                echo "Copying additional TensorRT-LLM library: $so_file"
-                cp -v "$so_file" /content/tritonserver/lib/tensorrt_llm_extra/
-            fi
-        done
-        
-        # Add this directory to LD_LIBRARY_PATH
-        export LD_LIBRARY_PATH="/content/tritonserver/lib/tensorrt_llm_extra:$LD_LIBRARY_PATH"
-        
-        # Create links in the Triton backends directory for any missing libraries
-        if [ -d "/content/tritonserver/backends/tensorrtllm" ]; then
-            echo "Creating links in TensorRT-LLM backend directory..."
-            for lib in /content/tritonserver/lib/tensorrt_llm/*.so /content/tritonserver/lib/tensorrt_llm_extra/*.so; do
-                if [ -f "$lib" ]; then
-                    base_name=$(basename "$lib")
-                    if [ ! -f "/content/tritonserver/backends/tensorrtllm/$base_name" ]; then
-                        ln -sf "$lib" "/content/tritonserver/backends/tensorrtllm/$base_name"
-                        echo "Created backend link: /content/tritonserver/backends/tensorrtllm/$base_name -> $lib"
-                    fi
-                fi
-            done
-        fi
+    # Copy Python bindings module
+    if [ -f "$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_llm/bindings.cpython-$PYTHON_VERSION-x86_64-linux-gnu.so" ]; then
+        echo "Copying TensorRT-LLM Python bindings..."
+        cp -v "$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_llm/bindings.cpython-$PYTHON_VERSION-x86_64-linux-gnu.so" /content/tritonserver/lib/tensorrt_llm/
     fi
     
     # Handle TensorRT libraries (specifically libnvinfer)
@@ -133,7 +102,7 @@ setup_poetry_env_for_triton() {
         echo "Found TensorRT libs directory, copying to Triton library path..."
         cp -v $POETRY_ENV/lib/python$PYTHON_VERSION/site-packages/tensorrt_libs/* /content/tritonserver/lib/tensorrt/ 2>/dev/null
         
-        # Create symbolic links with version numbers for these libraries too
+        # Create symbolic links with version numbers for these libraries
         echo "Creating symbolic links for TensorRT libraries..."
         cd /content/tritonserver/lib/tensorrt
         for lib in *.so*; do
@@ -184,6 +153,20 @@ setup_poetry_env_for_triton() {
         done < <(find "$POETRY_ENV" -name "$pattern" -type f 2>/dev/null)
     done
     
+    # Create links in the Triton backends directory
+    if [ -d "/content/tritonserver/backends/tensorrtllm" ]; then
+        echo "Creating links in TensorRT-LLM backend directory..."
+        for lib in /content/tritonserver/lib/tensorrt_llm/*.so; do
+            if [ -f "$lib" ]; then
+                base_name=$(basename "$lib")
+                if [ ! -f "/content/tritonserver/backends/tensorrtllm/$base_name" ]; then
+                    ln -sf "$lib" "/content/tritonserver/backends/tensorrtllm/$base_name"
+                    echo "Created backend link: /content/tritonserver/backends/tensorrtllm/$base_name -> $lib"
+                fi
+            fi
+        done
+    fi
+    
     # Check for CUDA libraries and add to path if found
     CUDA_DIRS=$(find "$POETRY_ENV" -path "*cuda*" -type d 2>/dev/null)
     if [ -n "$CUDA_DIRS" ]; then
@@ -194,77 +177,9 @@ setup_poetry_env_for_triton() {
         done
     fi
     
-    # Add special handling for the tensorrtllm backend
-    echo "Setting up TensorRT-LLM backend compatibility..."
-    
-    # If the backend directory exists, add special handling
-    if [ -d "/content/tritonserver/backends/tensorrtllm" ]; then
-        echo "Found TensorRT-LLM backend, setting up additional compatibility..."
-        
-        # First, check if the library exists
-        if [ -f "/content/tritonserver/backends/tensorrtllm/libtriton_tensorrtllm.so" ]; then
-            # Get dependencies of the backend library
-            echo "Checking TensorRT-LLM backend dependencies..."
-            ldd /content/tritonserver/backends/tensorrtllm/libtriton_tensorrtllm.so 2>&1 | grep "not found" | awk '{print $1}' > /tmp/missing_libs.txt
-            
-            if [ -s /tmp/missing_libs.txt ]; then
-                echo "Found missing dependencies:"
-                cat /tmp/missing_libs.txt
-                echo "Attempting to resolve missing dependencies..."
-                
-                # Find all libraries with similar names in the poetry environment
-                while IFS= read -r lib; do
-                    # Strip leading 'lib' and trailing '.so'
-                    base_lib=$(echo "$lib" | sed 's/^lib//' | sed 's/\.so.*//')
-                    echo "Searching for library containing $base_lib..."
-                    
-                    # Find potential libraries and create symlinks
-                    find "$POETRY_ENV" -name "*$base_lib*.so*" -type f 2>/dev/null | while read -r found_lib; do
-                        found_base=$(basename "$found_lib")
-                        echo "Found potential match: $found_lib"
-                        cp -v "$found_lib" /content/tritonserver/lib/
-                        
-                        # Create symlink with exact name being looked for
-                        ln -sf "/content/tritonserver/lib/$found_base" "/content/tritonserver/lib/$lib"
-                        echo "Created symlink: /content/tritonserver/lib/$lib -> /content/tritonserver/lib/$found_base"
-                    done
-                done < /tmp/missing_libs.txt
-            else
-                echo "No missing dependencies found in ldd output"
-            fi
-        else
-            echo "Warning: TensorRT-LLM backend library not found at /content/tritonserver/backends/tensorrtllm/libtriton_tensorrtllm.so"
-        fi
-    fi
-    
-    # Special handling for the specific symbol from the error
-    echo "Adding special handling for TensorRT-LLM scheduler symbols..."
-    find "$POETRY_ENV" -name "*tensorrt_llm*executor*.so*" -type f 2>/dev/null | while read -r found_lib; do
-        echo "Found TensorRT-LLM executor library: $found_lib"
-        cp -v "$found_lib" /content/tritonserver/lib/
-        
-        # Create symlinks to ensure this library is found first
-        ln -sf "$found_lib" "/content/tritonserver/backends/tensorrtllm/$(basename "$found_lib")"
-        echo "Created symlink in backend directory"
-    done
-    
-    # Check for specific Python modules with TensorRT-LLM dependencies
-    if python -c "import tensorrt_llm.executor" 2>/dev/null; then
-        echo "Found tensorrt_llm.executor module, exporting path for symbols..."
-        EXECUTOR_PATH=$(python -c "import tensorrt_llm.executor, os; print(os.path.dirname(tensorrt_llm.executor.__file__))" 2>/dev/null)
-        
-        if [ -n "$EXECUTOR_PATH" ]; then
-            echo "TensorRT-LLM executor module path: $EXECUTOR_PATH"
-            export LD_LIBRARY_PATH="$EXECUTOR_PATH:$LD_LIBRARY_PATH"
-            
-            # Copy any .so files from this path
-            find "$EXECUTOR_PATH" -name "*.so" -type f 2>/dev/null | while read -r lib; do
-                echo "Copying executor library: $lib"
-                cp -v "$lib" /content/tritonserver/lib/
-                ln -sf "/content/tritonserver/lib/$(basename "$lib")" "/content/tritonserver/backends/tensorrtllm/$(basename "$lib")"
-            done
-        fi
-    fi
+    # Set Triton backend directory
+    export TRITON_BACKEND_DIRECTORY=/content/tritonserver/backends
+    echo "Set TRITON_BACKEND_DIRECTORY=$TRITON_BACKEND_DIRECTORY"
     
     # Update system library cache
     ldconfig 2>/dev/null || echo "ldconfig failed (might need sudo)"
