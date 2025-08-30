@@ -24,7 +24,7 @@ soxr = "0.5.0.post1"
 torch = "^2.7.1"
 torchaudio = "^2.7.1"
 tqdm = "4.66.5"
-transformers = "^4.51.1"
+transformers = "4.51.0"
 gradio = "5.18.0"
 tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.11.0.33.tar.gz#sha256=a3d6048f86e11ea5202d473646194d3be866c0c8d578ac0b7eeb91d923f65d0b"}
 tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.19.0-cp310-cp310-linux_x86_64.whl#sha256=a75031e3f1bd44cdffe0ab4429e798ce5761a49361241afa6eea2174dd8ea7a9"}
