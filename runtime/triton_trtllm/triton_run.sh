@@ -35,6 +35,12 @@ if [ $stage -le 1 ] && [ $stop_stage -ge 1 ]; then
                                 --dtype $trt_dtype || exit 1
 
     echo "Building TensorRT engines"
+    # Ensure trtllm-build is in PATH
+    if command -v poetry &> /dev/null; then
+        POETRY_ENV=$(poetry env info -p)
+        export PATH="$POETRY_ENV/bin:$PATH"
+    fi
+    
     trtllm-build --checkpoint_dir $trt_weights_dir \
                 --output_dir $trt_engines_dir \
                 --max_batch_size 16 \
@@ -109,16 +115,20 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
             echo "Poetry environment: $POETRY_ENV"
             
             # Set Python environment for Triton
-            export PYTHONPATH=$POETRY_ENV/lib/python3.10/site-packages:$PROJECT_ROOT:$PYTHONPATH
-            export LD_LIBRARY_PATH=$POETRY_ENV/lib:/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH
-        else
-            # If no Poetry, just set standard paths
-            export PYTHONPATH=$PROJECT_ROOT:$PYTHONPATH
-            export LD_LIBRARY_PATH=/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH
+            export PATH="$POETRY_ENV/bin:$PATH"
+            export PYTHONPATH="$POETRY_ENV/lib/python3.10/site-packages:$PROJECT_ROOT:$PYTHONPATH"
+            export LD_LIBRARY_PATH="$POETRY_ENV/lib/python3.10/site-packages/tensorrt_llm/libs:$POETRY_ENV/lib:/content/tritonserver/lib:/content/tritonserver/lib/stubs:$LD_LIBRARY_PATH"
         fi
         
         # Set location of Triton backends explicitly
         export TRITON_BACKEND_DIRECTORY=/content/tritonserver/backends
+        
+        # Print environment variables for debugging
+        echo "Environment variables:"
+        echo "PATH=$PATH"
+        echo "PYTHONPATH=$PYTHONPATH"
+        echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+        echo "TRITON_BACKEND_DIRECTORY=$TRITON_BACKEND_DIRECTORY"
         
         # Ensure executable permission
         chmod +x /content/tritonserver/bin/tritonserver
@@ -140,6 +150,7 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
             echo "Triton server started successfully"
         else
             echo "Warning: Triton server may not have started properly"
+            echo "Check if there are any error messages in the output above"
         fi
     fi
 fi
