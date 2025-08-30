@@ -5,13 +5,13 @@ stop_stage=$2
 service_type=$3
 echo "Start stage: $stage, Stop stage: $stop_stage service_type: $service_type"
 
-# Fix paths to match your project structure
-PROJECT_ROOT=$(pwd)
+# Project structure paths
+PROJECT_ROOT="/content/spark-tts-poetry"
 SCRIPTS_DIR=$PROJECT_ROOT/runtime/triton_trtllm/scripts
 MODEL_REPO_SRC=$PROJECT_ROOT/runtime/triton_trtllm/model_repo
 
 # Source the Poetry environment setup helper
-HELPER_SCRIPT="$PROJECT_ROOT/runtime/triton_trtllm/setup_poetry_env_for_triton.sh"
+HELPER_SCRIPT="$PROJECT_ROOT/setup_poetry_env_for_triton.sh"
 if [ -f "$HELPER_SCRIPT" ]; then
     echo "Sourcing Poetry environment setup helper..."
     source "$HELPER_SCRIPT"
@@ -20,6 +20,14 @@ else
     echo "Helper script not found at $HELPER_SCRIPT"
     echo "Please create the helper script first."
     exit 1
+fi
+
+# Get the Poetry Python path
+POETRY_PYTHON_PATH="$POETRY_ENV/bin/python"
+if [ ! -x "$POETRY_PYTHON_PATH" ]; then
+    echo "Poetry Python not found or not executable at $POETRY_PYTHON_PATH"
+    POETRY_PYTHON_PATH=$(which python)
+    echo "Using system Python: $POETRY_PYTHON_PATH"
 fi
 
 # Model and output directories
@@ -119,11 +127,14 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
         # Ensure executable permission
         chmod +x /content/tritonserver/bin/tritonserver
         
-        # Use the extracted Triton server binary
+        # Use the extracted Triton server binary with explicit Python path
         echo "Starting Triton server with model repository: $model_repo"
+        echo "Using Python: $POETRY_PYTHON_PATH"
+        
         /content/tritonserver/bin/tritonserver \
             --model-repository=${model_repo} \
             --backend-directory=/content/tritonserver/backends \
+            --backend-config=python,python-path=$POETRY_PYTHON_PATH \
             --backend-config=python,shm-default-byte-size=10485760 \
             --log-verbose=1 &
         

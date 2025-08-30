@@ -29,17 +29,18 @@ setup_poetry_env_for_triton() {
     fi
     echo "Poetry uses Python $PYTHON_VERSION"
     
-    # Set PYTHONHOME to the Poetry environment
-    export PYTHONHOME="$POETRY_ENV"
-    echo "Set PYTHONHOME=$PYTHONHOME"
+    # DO NOT set PYTHONHOME as it causes initialization errors with Triton
     
     # Set PATH to include Poetry's bin directory
     export PATH="$POETRY_ENV/bin:$PATH"
     echo "Added Poetry's bin to PATH"
     
-    # Set PYTHONPATH to include Poetry's site-packages and project root
-    export PYTHONPATH="$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages:$PROJECT_ROOT:$PYTHONPATH"
-    echo "Set PYTHONPATH to include Poetry's site-packages"
+    # Store the Poetry Python path for Triton config
+    POETRY_PYTHON_PATH="$POETRY_ENV/bin/python"
+    
+    # Set PYTHONPATH to include Poetry's site-packages and Python lib directories
+    export PYTHONPATH="$POETRY_ENV/lib/python$PYTHON_VERSION/site-packages:$POETRY_ENV/lib/python$PYTHON_VERSION:$PROJECT_ROOT:$PYTHONPATH"
+    echo "Set PYTHONPATH to include Poetry's Python libraries"
     
     # Find all directories containing .so files in the Poetry environment
     echo "Finding all library directories in Poetry environment..."
@@ -103,11 +104,11 @@ setup_poetry_env_for_triton() {
     
     # Print final environment
     echo "Environment variables set for Triton:"
-    echo "PYTHONHOME=$PYTHONHOME"
     echo "PYTHONPATH=$PYTHONPATH"
     echo "PATH=$PATH"
     echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
     echo "TRITON_BACKEND_DIRECTORY=$TRITON_BACKEND_DIRECTORY"
+    echo "Poetry Python: $POETRY_PYTHON_PATH"
 }
 
 # This script can be sourced or run directly
