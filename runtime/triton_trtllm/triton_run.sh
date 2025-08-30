@@ -11,7 +11,7 @@ SCRIPTS_DIR=$PROJECT_ROOT/runtime/triton_trtllm/scripts
 MODEL_REPO_SRC=$PROJECT_ROOT/runtime/triton_trtllm/model_repo
 
 # Source the Poetry environment setup helper
-HELPER_SCRIPT="$PROJECT_ROOT/setup_poetry_env_for_triton.sh"
+HELPER_SCRIPT="$PROJECT_ROOT/runtime/triton_trtllm/setup_poetry_env_for_triton.sh"
 if [ -f "$HELPER_SCRIPT" ]; then
     echo "Sourcing Poetry environment setup helper..."
     source "$HELPER_SCRIPT"
