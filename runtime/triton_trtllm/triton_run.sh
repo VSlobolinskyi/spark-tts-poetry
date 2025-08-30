@@ -93,6 +93,7 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
         
         # Start with Docker
         docker run -d --name tritonserver --gpus all -p 8000:8000 -p 8001:8001 -p 8002:8002 \
+            --restart unless-stopped \
             -v $model_repo:/models \
             nvcr.io/nvidia/tritonserver:25.02-trtllm-python-py3 tritonserver --model-repository=/models
         
