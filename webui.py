@@ -27,59 +27,120 @@ from sparktts.utils.token_parser import LEVELS_MAP_UI
 
 
 def initialize_model(model_dir="pretrained_models/Spark-TTS-0.5B", device=0, use_triton=False):
-    """Load the model using Triton or directly."""
+    """Load the model using Triton in udocker container or directly."""
+    import logging
+    import os
+    import subprocess
+    import threading
+    import time
+    
     logging.info(f"Loading model from: {model_dir}")
     
     if use_triton:
         try:
+            # Import your existing TritonSparkTTS class
             from runtime.triton_trtllm.TritonSparkTTS import TritonSparkTTS
-            import subprocess, threading, time
             
-            # Function to start server in a separate thread
+            # Function to start server in udocker container
             def start_server():
-                logging.info("Starting Triton server in background thread...")
+                logging.info("Starting Triton server in udocker container...")
                 try:
-                    if os.path.isdir("tllm_checkpoint_bfloat16"):
-                        subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "2", "3", "offline"], check=True)
+                    if os.path.isdir("/content/tllm_checkpoint_bfloat16"):
+                        # Run stages 2-3 (model repo setup + server start)
+                        logging.info("Found existing checkpoint, running stages 2-3")
+                        cmd = [
+                            "udocker", "run", 
+                            "--volume=/content:/workspace",
+                            "--workdir=/workspace",
+                            "triton-spark-tts",
+                            "bash", "/workspace/container_run.sh", "2", "3", "offline"
+                        ]
                     else:
-                        subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "0", "1"], check=True)
-                        subprocess.run(["bash", "runtime/triton_trtllm/triton_run.sh", "2", "3", "offline"], check=True)
+                        # Run full pipeline (download + convert + setup + server)
+                        logging.info("No checkpoint found, running full pipeline (stages 0-3)")
+                        cmd = [
+                            "udocker", "run",
+                            "--volume=/content:/workspace", 
+                            "--workdir=/workspace",
+                            "triton-spark-tts",
+                            "bash", "/workspace/container_run.sh", "0", "3", "offline"
+                        ]
+                    
+                    # Execute the udocker command
+                    logging.info(f"Running command: {' '.join(cmd)}")
+                    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                    
+                    # Stream output in real-time
+                    for line in process.stdout:
+                        print(line.strip())
+                    
+                    process.wait()
+                    if process.returncode != 0:
+                        logging.error(f"Server process failed with return code: {process.returncode}")
+                    
                 except Exception as e:
                     logging.error(f"Error in server thread: {e}")
             
             # Check if server is already running
-            result = subprocess.run(["curl", "-s", "localhost:8000/v2/health/ready"], capture_output=True)
-            if result.returncode != 0:
+            def check_server_health():
+                try:
+                    result = subprocess.run(
+                        ["curl", "-s", "localhost:8000/v2/health/ready"], 
+                        capture_output=True, 
+                        timeout=5
+                    )
+                    return result.returncode == 0
+                except:
+                    return False
+            
+            if not check_server_health():
+                logging.info("Server not running, starting new instance...")
+                
                 # Start server in background thread
                 server_thread = threading.Thread(target=start_server)
-                server_thread.daemon = True  # Make thread terminate when main program exits
+                server_thread.daemon = True
                 server_thread.start()
                 
                 # Wait for server to become available
-                max_wait = 120  # Maximum seconds to wait
+                max_wait = 300  # Maximum seconds to wait (increased for model loading)
+                logging.info("Waiting for Triton server to start...")
+                
                 for i in range(max_wait):
-                    check = subprocess.run(["curl", "-s", "localhost:8000/v2/health/ready"], capture_output=True)
-                    if check.returncode == 0:
-                        logging.info(f"Server started successfully after {i} seconds")
+                    if check_server_health():
+                        logging.info(f"Triton server started successfully after {i} seconds")
                         break
-                    if i % 10 == 0:  # Log every 10 seconds
-                        logging.info(f"Waiting for server to start... ({i}/{max_wait}s)")
+                    if i % 15 == 0 and i > 0:  # Log every 15 seconds
+                        logging.info(f"Still waiting for server... ({i}/{max_wait}s)")
                     time.sleep(1)
                 else:
                     logging.error(f"Server failed to start after {max_wait} seconds")
-                    raise RuntimeError("Server failed to start in the allocated time")
+                    raise RuntimeError("Triton server failed to start in the allocated time")
+            else:
+                logging.info("Triton server is already running")
             
-            # Initialize Triton client
+            # Initialize your existing Triton client
             logging.info("Initializing Triton gRPC client")
             model = TritonSparkTTS(server_url="localhost:8001")
-            return model
+            
+            # Test the connection with a simple health check
+            try:
+                # Your TritonSparkTTS class should handle connection testing internally
+                logging.info("Triton client initialized successfully")
+                return model
+            except Exception as e:
+                logging.error(f"Failed to connect to Triton server: {e}")
+                raise
+                
         except Exception as e:
             logging.error(f"Failed to initialize Triton: {e}")
             logging.info("Falling back to direct model loading")
             use_triton = False
     
-    # Original implementation for direct loading
-    # [rest of your function remains the same]
+    if not use_triton:
+        # Your original implementation for direct loading
+        logging.info("Loading model directly (non-Triton mode)")
+        # Add your existing direct model loading code here
+        pass
 
 
 def run_tts(

@@ -12,7 +12,7 @@ repository = "https://github.com/VSlobolinskyi/spark-tts-poetry"
 include = "scripts"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.12,<3.13"
 einops = "0.8.1"
 einx = "0.3.0"
 numpy = "*"
@@ -21,16 +21,11 @@ packaging = "24.2"
 safetensors = "0.5.2"
 soundfile = "0.12.1"
 soxr = "0.5.0.post1"
-torch = ">=2.4.0a0,<=2.4.0"
-torchaudio = "^2.4.0"
+torch = "^2.7.1"
+torchaudio = "^2.7.1"
 tqdm = "4.66.5"
-transformers = ">=4.38.2,<=4.45.1"
+transformers = "^4.51.1"
 gradio = "5.18.0"
-tensorrt = {url = "https://pypi.nvidia.com/tensorrt/tensorrt-10.4.0.tar.gz#sha256=52e5db2bc712f81894f73c6fdcfa91d61b9e14546fd8ca1c6df031b3584d5837"}
-tensorrt-llm = {url = "https://pypi.nvidia.com/tensorrt-llm/tensorrt_llm-0.14.0-cp310-cp310-linux_x86_64.whl#sha256=cf399ab77e531871a451da9db05e7bdc86b773c3b6b7001f86e2771a4870d092"}
-cuda-python = {version=">=12.0,<13", markers="python_version >= '3.10' and python_version < '3.11'"}
-tritonclient = {version=">=2.55,<2.61", extras=["grpc","http"]}
-
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0"
 
@@ -39,4 +34,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-download-model = "scripts.download_model:main"
+download-model = "scripts_poetry.download_model:main"

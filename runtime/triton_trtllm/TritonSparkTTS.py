@@ -4,6 +4,7 @@ import soundfile as sf
 import subprocess
 from pathlib import Path
 
+# Updated TritonSparkTTS class to work with the containerized setup
 class TritonSparkTTS:
     """Wrapper for gRPC client that matches the SparkTTS API"""
     
@@ -32,7 +33,7 @@ class TritonSparkTTS:
         # Ensure output directory exists
         os.makedirs("./tmp", exist_ok=True)
         
-        # Run client_grpc.py as a subprocess
+        # Use your existing client_grpc.py - no changes needed since server ports are forwarded
         cmd = [
             "python", "runtime/triton_trtllm/client_grpc.py",
             "--server-addr", "localhost",
